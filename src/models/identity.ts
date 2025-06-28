@@ -1,12 +1,12 @@
 export interface User {
-    id: number;
+    id: string;
     username: string;
     password: string;
     createdAt: Date;
     updatedAt: Date;
     email: string;
-    gender: Gender | null;
-    role: Role | null;
+    gender: number;
+    role: number;
     dateOfBirth: Date | null;
     token: number;
     grade: number;
@@ -14,20 +14,22 @@ export interface User {
     isEnalbled: boolean;
 }
 
-export interface Gender {
-    id: number;
-    genderType: string;
-}
-
-export interface Role {
-    id: number;
-    roleName: string;
-}
-
 export interface JWTToken {
     id: number;
     user: User;
     token: string;
+}
+
+export enum GenderType {
+    MALE = 1,
+    FEMALE = 2,
+    OTHER = 3
+}
+
+export enum RoleType {
+    ADMIN = 1,
+    TEACHER = 2,
+    USER = 3
 }
 
 export default 0;
