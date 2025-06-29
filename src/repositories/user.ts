@@ -45,7 +45,7 @@ export const userRepository = {
                         LEFT JOIN
                             tokens AS t ON u.id = t.user_id
                         WHERE
-                            u.username = $1 OR u.email = $1;`;
+                            u.username = '$1' OR u.email = '$1';`;
             const result = await client.query(query, [usernameOrEmail])
             if (result.rows.length === 0) return null;
             const userCredentials: UserCredentials = result.rows[0] as UserCredentials
