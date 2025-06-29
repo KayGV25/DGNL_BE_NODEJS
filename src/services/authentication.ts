@@ -9,7 +9,7 @@ export const authenticationService = {
             if (!userCredentials) {
                 throw new NotFoundError("User not found");
             }
-            if (securityService.hashPassword(password) !== userCredentials.password) {
+            if (await securityService.verifyPassword(password, userCredentials.password)) {
                 throw new UnauthorizedError("Invalid password")
             }
             return userCredentials.token;
