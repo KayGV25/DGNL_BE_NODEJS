@@ -6,7 +6,7 @@ interface SQLConfig {
   host: string;
   user: string;
   password: string;
-  port: string;
+  port: number;
   database: string;
   url: string;
 }
@@ -17,7 +17,7 @@ export const sqlConfig: SQLConfig = {
     password: process.env.POSTGRES_PASSWORD || 'dgnl',
     host: process.env.POSTGRES_HOST || 'localhost',
     database: process.env.POSTGRES_NAME || 'web_dgnl_db',
-    port: process.env.POSTGRES_PORT || '5432'
+    port: Number(process.env.POSTGRES_PORT) || 5432
 }
 
 interface RedisConfig {
