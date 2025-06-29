@@ -28,6 +28,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.2",
     "pg": "^8.16.3"
   }
 }
