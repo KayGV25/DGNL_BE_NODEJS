@@ -1,12 +1,20 @@
+import jwt, { NotBeforeError, TokenExpiredError } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { securityConfig } from '../configs/securityConfig';
+import { UnauthorizedError } from '../middlewares/errorHandler';
 
 interface securityService {
     hashPassword(password: string): Promise<string>
     verifyPassword(password: string, hashedPassword: string): Promise<boolean>
     isJWTTokenStillValid(token: string): boolean
-    generateJWTToken(): string
+    generateJWTToken(userId: string): string
+    decodeJWTToken(token: string): JWTPayload
     getDeviceFingerprint(req: Request): string
 
+}
+
+interface JWTPayload {
+    userId: string 
 }
 
 const SALT_ROUNDS = 10
@@ -33,11 +41,38 @@ export const securityService: securityService = {
     },
 
     isJWTTokenStillValid(token: string): boolean {
-        return false
+        try {
+            this.decodeJWTToken(token); 
+            return true;
+        } catch (error) {
+            if (error instanceof TokenExpiredError) {
+                throw new UnauthorizedError("Token has expired")
+            }
+            if (error instanceof NotBeforeError) {
+                throw new UnauthorizedError("Token is not valid")
+            }
+        } finally {
+            return false;
+        }
     },
 
-    generateJWTToken(): string {
-        return ""
+    generateJWTToken(userId: string): string {
+        const payload: JWTPayload = { userId };
+        
+        const token = jwt.sign(payload, securityConfig.jwtSecret, {
+            expiresIn: securityConfig.expiresIn,
+            notBefore: Date.now(),
+            subject: userId,
+            algorithm: 'HS256',
+        })
+
+        return token
+    },
+
+    // will throw {JsonWebTokenError | TokenExpiredError | NotBeforeError} if faild to decode token
+    decodeJWTToken(token: string): JWTPayload {
+        const decoded = jwt.verify(token, securityConfig.jwtSecret) as JWTPayload;
+        return decoded;
     },
 
     getDeviceFingerprint(req: Request): string {
