@@ -17,7 +17,7 @@ export interface User {
 export interface JWTToken {
     id: number;
     user: User;
-    token: string;
+    token: string | null;
 }
 
 export enum GenderType {
