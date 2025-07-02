@@ -12,6 +12,12 @@ export const authenticationService = {
             if (await securityService.verifyPassword(password, userCredentials.password)) {
                 throw new UnauthorizedError("Invalid password")
             }
+
+            if (userCredentials.token === null) {
+                throw new NotFoundError("Token not found");
+            }
+
+            // Validate the token
             return userCredentials.token;
         } catch (error) {
             console.error('Error in authenticationService.login:', error);
