@@ -44,6 +44,12 @@ export class ForbiddenError extends CustomAppError {
     }
 }
 
+export class ConnectionError extends CustomAppError {
+    constructor(message: string = "Connection Error") {
+        super(message, 503)
+    }
+}
+
 export const errorHandler = (
     err: AppError,
     req: Request,
