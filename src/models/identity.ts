@@ -7,16 +7,16 @@ export interface User {
     email: string;
     gender: number;
     role: number;
-    dateOfBirth: Date | null;
+    dob: Date | null;
     token: number;
-    grade: number;
-    avatarUrl: string;
-    isEnalbled: boolean;
+    grade_lv: number;
+    avatar_url: string;
+    is_enable: boolean;
 }
 
 export interface JWTToken {
     id: number;
-    user: User;
+    user_id: User;
     token: string | null;
 }
 
