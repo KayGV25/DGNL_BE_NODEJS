@@ -6,18 +6,15 @@ export const tokenRepository = {
         try {
             await client.query('BEGIN');
 
-            const res = await client.query(
+            await client.query(
                 `DELETE FROM indentity.tokens
                 WHERE token = $1;`, 
                 [token]);
 
             await client.query('COMMIT');
-
-            console.log(`Deleted ${res.rowCount} row(s).`);
             return true;
         } catch (error) {
             await client.query('ROLLBACK');
-            console.error("Error deleting token:", error);
             throw error;
         }
     },

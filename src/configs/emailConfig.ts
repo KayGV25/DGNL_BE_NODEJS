@@ -1,9 +1,4 @@
-interface EmailConfig {
-    host: string;
-    port: number;
-    email: string;
-    password: string;
-}
+import { EmailConfig } from "../interfaces/config";
 
 export const emailConfig: EmailConfig = {
     host: process.env.EMAIL_HOST || "smtp.gmail.com",

@@ -1,12 +1,14 @@
 import { Pool } from 'pg';
 import { sqlConfig } from '../configs/databaseConfig';
+import serverConfig from '../configs/serverConfig';
 
 const pool = new Pool({
     user: sqlConfig.user,
     password: sqlConfig.password,
     host: sqlConfig.host,
     port: sqlConfig.port,
-    database: sqlConfig.database
+    database: sqlConfig.database,
+    ssl: serverConfig.nodeEnv === 'development' ? false : true
 });
 
 pool.on('error', (err: Error) => {

@@ -1,15 +1,7 @@
 import dotenv from 'dotenv';
+import { RedisConfig, SQLConfig } from '../interfaces/config';
 
 dotenv.config();
-
-interface SQLConfig {
-  host: string;
-  user: string;
-  password: string;
-  port: number;
-  database: string;
-  url: string;
-}
 
 export const sqlConfig: SQLConfig = {
     url: process.env.POSTGRES_URL || 'jdbc:postgresql://localhost:5432/web_dgnl_db',
@@ -18,12 +10,6 @@ export const sqlConfig: SQLConfig = {
     host: process.env.POSTGRES_HOST || 'localhost',
     database: process.env.POSTGRES_NAME || 'web_dgnl_db',
     port: Number(process.env.POSTGRES_PORT) || 5432
-}
-
-interface RedisConfig {
-    host: string;
-    port: number;
-    timeout: number;
 }
 
 export const redisConfig: RedisConfig = {
