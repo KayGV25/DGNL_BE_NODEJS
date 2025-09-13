@@ -62,9 +62,7 @@ export const userRepository = {
                 user.password,
                 user.role
             ];
-            console.log("Start create User")
             const result = await client.query(query, values);
-            console.log(result)
             const newUserId = result.rows[0].id;
             return newUserId;
         } catch (err) {

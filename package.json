@@ -34,6 +34,7 @@
     "@types/nodemailer": "^6.4.17",
     "@types/redis": "^4.0.10",
     "bcrypt": "^6.0.0",
+    "express-rate-limit": "^8.1.0",
     "handlebars": "^4.7.8",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^7.0.4",

@@ -1,6 +1,7 @@
 // Service for user management
+import { UserInfo } from "../interfaces/user";
 import { CustomAppError, NotFoundError } from "../middlewares/errorHandler";
-import { userRepository, UserInfo } from "../repositories/user";
+import { userRepository } from "../repositories/user";
 
 export const userService = {
     async getUserById(userId: string): Promise<UserInfo | null> {
