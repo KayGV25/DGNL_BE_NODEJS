@@ -1,15 +1,12 @@
 import dotenv from 'dotenv';
+import { ServerConfig } from '../interfaces/config';
 
 dotenv.config();
 
-interface ServerConfig {
-  port: number;
-  nodeEnv: string;
-}
-
 const serverConfig: ServerConfig = {
-  port: Number(process.env.PORT) || 3000,
+  port: Number(process.env.PORT) || 80,
   nodeEnv: process.env.NODE_ENV || 'development',
+  url: process.env.URL || 'http://localhost:80'
 };
 
 export default serverConfig;

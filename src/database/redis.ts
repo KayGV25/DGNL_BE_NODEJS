@@ -59,18 +59,21 @@ export const redisService = {
     },
 
     async getRedisValue(key: string, type: RedisKeyType): Promise<string> {
-        await validateRedisClient()
+        await validateRedisClient();
 
         try {
-            const token = await redisClient.get(this.getRedisKey(key, type));
-            if (token) {
-                return token;
-            } else {
-                throw new NotFoundError("No token found")
+            const value = await redisClient.get(this.getRedisKey(key, type));
+
+            if (value === null) {
+                throw new NotFoundError(`${type.toUpperCase()} not found for key: ${key}`);
             }
-            
-        } catch {
-            throw new ForbiddenError("Failed to get token in Redis")
+
+            return value;
+        } catch (err) {
+            if (err instanceof NotFoundError) {
+                throw err; // preserve so callers know it's missing
+            }
+            throw new ForbiddenError("Redis service failed to fetch value");
         }
     },
 
@@ -78,10 +81,7 @@ export const redisService = {
         await validateRedisClient()
         
         try {
-            await Promise.all([
-                redisClient.setEx(this.getRedisKey(email, RedisKeyType.EMAIL), RedisTTL.EMAIL, token),
-                redisClient.setEx(this.getRedisKey(token, RedisKeyType.TOKEN), RedisTTL.EMAIL, email)
-            ]);
+            await redisClient.setEx(this.getRedisKey(email, RedisKeyType.EMAIL), RedisTTL.EMAIL, token)
         } catch {
             throw new ForbiddenError("Failed to set email token in Redis")
         }
@@ -91,17 +91,17 @@ export const redisService = {
         await validateRedisClient()
     
         try {
-            await redisClient.setEx(this.getRedisKey(email, RedisKeyType.EMAIL), RedisTTL.OTP, otp);
+            await redisClient.setEx(this.getRedisKey(email, RedisKeyType.OTP), RedisTTL.OTP, otp);
         } catch {
             throw new ForbiddenError("Failed to set otp in Redis")
         }
     },
     async getEmailActivationToken(email: string): Promise<string> {
-        return this.getRedisValue(email, RedisKeyType.EMAIL)
+        return await this.getRedisValue(email, RedisKeyType.EMAIL)
     },
 
     async getOTP(email: string): Promise<string> {
-        return this,this.getRedisValue(email, RedisKeyType.OTP)
+        return await this.getRedisValue(email, RedisKeyType.OTP);
     }
 }
 

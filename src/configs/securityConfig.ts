@@ -1,9 +1,6 @@
-interface JWTConfig {
-    jwtSecret: string;
-    expiresIn: number;
-}
+import { JWTConfig } from "../interfaces/jwt";
 
 export const securityConfig: JWTConfig = {
     jwtSecret: process.env.JWT_SECRET || 'demo_jwt_secret',
-    expiresIn: Number(process.env.JWT_EXPIERE) || 1000 * (60 * 60 * 24 * 365) // 1 year
+    expiresIn: 1000 * (60 * 60 * 24 * 30) // 1 month
 }
