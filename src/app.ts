@@ -1,10 +1,12 @@
 import express from 'express';
 import { errorHandler, NotFoundError } from './middlewares/errorHandler';
 import publicRouter from './routers/public';
+import requestLogger from './middlewares/requestLogger';
 
 const app = express();
 
 app.use(express.json())
+app.use(requestLogger)
 
 // Routes
 app.use('/api/public', publicRouter)

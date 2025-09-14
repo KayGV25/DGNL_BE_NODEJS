@@ -1,9 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-
-export interface AppError extends Error {
-    statusCode?: number;
-    isOperational?: boolean;
-}
+import { AppError } from '../interfaces/handler';
 
 // Basic custom Error to extend
 export class CustomAppError extends Error implements AppError {
@@ -47,6 +43,36 @@ export class ForbiddenError extends CustomAppError {
 export class ConnectionError extends CustomAppError {
     constructor(message: string = "Connection Error") {
         super(message, 503)
+    }
+}
+
+export class ExpiredError extends CustomAppError {
+    constructor(message: string = "Expired") {
+        super(message, 410)
+    }
+}
+
+export class TokenNotFoundError extends CustomAppError {
+    constructor(message: string = "Token not found") {
+        super(message, 404);
+    }
+}
+
+export class TokenExpiredError extends CustomAppError {
+    constructor(message: string = "Token expired") {
+        super(message, 410)
+    }
+}
+
+export class ConflictError extends CustomAppError {
+    constructor(message: string = "Conflicted") {
+        super(message, 409);
+    }
+}
+
+export class AccountNotEnableError extends CustomAppError {
+    constructor(message: string = "Account not enabled") {
+        super(message, 401)
     }
 }
 
