@@ -15,7 +15,8 @@ export default [
         "eslint.config.js",
         "src/middlewares/errorHandler.ts",
         "coverage",
-        "jest.config.ts"
+        "jest.config.ts",
+        "src/tests/jest.setup.ts"
     ],
   },
   {

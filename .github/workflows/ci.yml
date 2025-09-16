@@ -12,23 +12,30 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22.19.0
-        #   cache: 'pnpm'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10.15.0
-    
+
       - name: Setup pnpm cache
-        uses: actions/setup-node@v4
+        uses: actions/cache@v3
         with:
-            cache: 'pnpm'
-            node-version: 22.19.0
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
 
       - name: Install dependencies
         run: pnpm install
@@ -36,5 +43,6 @@ jobs:
       - name: Run lint
         run: pnpm lint
 
-      # - name: Run tests
-      #   run: pnpm test
+      - name: Run CI tests (only changed files, fallback to all if diff fails)
+        run: |
+          pnpm jest --detectOpenHandles --changedSince=origin/${{ github.base_ref }} || pnpm jest --detectOpenHandles

@@ -5,10 +5,10 @@ export interface User {
     createdAt: Date;
     updatedAt: Date;
     email: string;
-    gender: number;
-    role: number;
+    gender_id: number;
+    role_id: number;
     dob: Date | null;
-    token: number;
+    coins: number;
     grade_lv: number;
     avatar_url: string;
     is_enable: boolean;

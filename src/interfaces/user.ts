@@ -3,10 +3,10 @@ import { JWTToken, User } from "../models/identity";
 export type UserInfo = Pick<User,
     "username" |
     "email" |
-    "gender" |
-    "role" |
+    "gender_id" |
+    "role_id" |
     "dob" |
-    "token" |
+    "coins" |
     "grade_lv" |
     "avatar_url" |
     "is_enable">;
