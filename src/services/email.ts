@@ -9,23 +9,24 @@ import serverConfig from "../configs/serverConfig";
 class EmailService {
     private transporter: Transporter;
 
-    constructor() {
-        this.transporter = nodemailer.createTransport({
+    constructor(transporter?: Transporter) {
+        // Allow custom transporter for tests
+        this.transporter = transporter || nodemailer.createTransport({
             host: emailConfig.host,
             port: emailConfig.port,
             auth: {
                 user: emailConfig.email,
-                pass: emailConfig.password
-            }
+                pass: emailConfig.password,
+            },
         });
 
         this.transporter.verify((error, success) => {
             if (error) {
-                console.error('Nodemailer configuration error:', error);
-            } 
-            
+                console.error("Nodemailer configuration error:", error);
+            }
+
             if (success) {
-                console.log('Nodemailer ready to send emails.');
+                console.log("Nodemailer ready to send emails.");
             }
         });
     }
