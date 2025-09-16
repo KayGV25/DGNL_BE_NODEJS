@@ -1,9 +1,9 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { authenticationService } from '../services/authentication';
-import { CustomAppError, TokenExpiredError } from '../middlewares/errorHandler';
+import { CustomAppError } from '../middlewares/errorHandler';
 import { RoleType } from '../models/identity';
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
     const { username, password } = req.body;
     if (!username || !password || typeof username !== 'string' || typeof password !== 'string') {
         res.status(400).json({ error: "Username and password are required and must be strings." });
@@ -17,19 +17,19 @@ export const login = async (req: Request, res: Response) => {
         } else if (typeof result === 'string') {
             const response = { 
                 user_id: result,
-                useranme: username
+                username: username
             }
             
             res.status(489).json(response)
         }
     } catch(error) {
         if (error instanceof CustomAppError) {
-            res.status(error.statusCode).json({ message: error.message })
+            next(error)
         }
     }
 }
 
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response, next: NextFunction) => {
     const { username, email, password } = req.body;
 
     if (!username || !email || !password || typeof username !== 'string' || typeof email !== 'string' || typeof password !== 'string') {
@@ -49,12 +49,12 @@ export const register = async (req: Request, res: Response) => {
         res.status(200).json({ message: "Account created successfully"})
     } catch (error) {
         if (error instanceof CustomAppError) {
-            res.status(error.statusCode).json({ message: error.message })
+            next(error)
         }
     }
 }
 
-export const validateEmail = async (req: Request, res: Response) => {
+export const validateEmail = async (req: Request, res: Response, next: NextFunction) => {
     const activationToken = req.query.activation_token as string;
     const email = req.query.email as string;
     const userId = req.query.id as string;
@@ -67,13 +67,13 @@ export const validateEmail = async (req: Request, res: Response) => {
         const result = await authenticationService.validateEmail(activationToken, email, userId)
         res.status(200).json(result)
     } catch (error) {
-        if (error instanceof TokenExpiredError) {
-            res.status(error.statusCode).json( {message: error.message} )
+        if (error instanceof CustomAppError) {
+            next(error)
         }
     }
 }
 
-export const validateOtp = async (req: Request, res: Response) => {
+export const validateOtp = async (req: Request, res: Response, next: NextFunction) => {
     const otp = req.query.otp as string;
     const email = req.query.username as string;
     const userId = req.query.id as string;
@@ -86,8 +86,8 @@ export const validateOtp = async (req: Request, res: Response) => {
         const result = await authenticationService.validateOTP(otp, email, userId)
         res.status(200).json(result)
     } catch (error) {
-        if (error instanceof TokenExpiredError) {
-            res.status(error.statusCode).json( {message: error.message} )
+        if (error instanceof CustomAppError) {
+            next(error)
         }
     }
 }

@@ -13,7 +13,9 @@ export default [
         "**/__mocks__/", 
         "**/*.test.ts",
         "eslint.config.js",
-        "src/middlewares/errorHandler.ts"
+        "src/middlewares/errorHandler.ts",
+        "coverage",
+        "jest.config.ts"
     ],
   },
   {
