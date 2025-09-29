@@ -11,6 +11,9 @@ export interface RedisConfig {
     host: string;
     port: number;
     timeout: number;
+    user: string;
+    password: string;
+    scheme: string;
 }
 
 export interface ServerConfig {

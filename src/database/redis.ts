@@ -11,10 +11,10 @@ export async function connectToRedis(): Promise<RedisClientType> {
     }
 
     const client = createClient({
-        url: `redis://${redisConfig.host}:${redisConfig.port}`
+        url: `${redisConfig.scheme}://${redisConfig.user}:${redisConfig.password}@${redisConfig.host}:${redisConfig.port}`
     })
 
-    client.on('error', (err) => console.error('Redis Client Error', err));
+    client.on('error', () => console.error('Redis Client Error'));
     client.on('connect', () => console.log('Redis client connected'));
     client.on('reconnecting', () => console.log('Redis client reconnecting...'));
     client.on('end', () => console.log('Redis client connection ended'));
@@ -74,6 +74,18 @@ export const redisService = {
                 throw err; // preserve so callers know it's missing
             }
             throw new ForbiddenError("Redis service failed to fetch value");
+        } finally {
+            redisClient.quit()
+        }
+    },
+
+    async deleteRedisValue(key: string, type: RedisKeyType): Promise<void> {
+        await validateRedisClient();
+
+        try {
+            await redisClient.del(this.getRedisKey(key, type))
+        } finally {
+            redisClient.quit()
         }
     },
 
@@ -84,6 +96,8 @@ export const redisService = {
             await redisClient.setEx(this.getRedisKey(email, RedisKeyType.EMAIL), RedisTTL.EMAIL, token)
         } catch {
             throw new ForbiddenError("Failed to set email token in Redis")
+        } finally {
+            redisClient.quit()
         }
     },
 
@@ -94,6 +108,8 @@ export const redisService = {
             await redisClient.setEx(this.getRedisKey(email, RedisKeyType.OTP), RedisTTL.OTP, otp);
         } catch {
             throw new ForbiddenError("Failed to set otp in Redis")
+        } finally {
+            redisClient.quit()
         }
     },
     async getEmailActivationToken(email: string): Promise<string> {
@@ -102,6 +118,14 @@ export const redisService = {
 
     async getOTP(email: string): Promise<string> {
         return await this.getRedisValue(email, RedisKeyType.OTP);
+    },
+
+    async deleteEmailActivationToken(email: string): Promise<void> {
+        await this.deleteRedisValue(email, RedisKeyType.EMAIL)
+    },
+
+    async deleteOTP(email: string): Promise<void> {
+        await this.deleteRedisValue(email, RedisKeyType.OTP)
     }
 }
 
