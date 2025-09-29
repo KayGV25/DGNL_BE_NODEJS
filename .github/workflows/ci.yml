@@ -40,6 +40,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Decrypt .env
+        run: npx dotenvx decrypt --key ${{ secrets.DOTENV_KEY }}
+
       - name: Run lint
         run: pnpm lint
 

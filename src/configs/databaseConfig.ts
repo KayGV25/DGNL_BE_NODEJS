@@ -13,9 +13,12 @@ export const sqlConfig: SQLConfig = {
 }
 
 export const redisConfig: RedisConfig = {
-    host: process.env.REDIS_URL || 'localhost',
+    host: process.env.REDIS_HOST || 'localhost',
     port: Number(process.env.REDIS_PORT) || 6379,
-    timeout: Number(process.env.REDIS_TIMEOUT) || 6000
+    timeout: Number(process.env.REDIS_TIMEOUT) || 6000,
+    user: process.env.REDIS_USER || 'default',
+    password: process.env.REDIS_PASSWORD || 'password',
+    scheme: process.env.REDIS_SCHEME || 'redis'
 }
 
 export default 0;

@@ -31,12 +31,12 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
-    "test": "jest --detectOpenHandles --onlyChanged",
-    "test:coverage": "jest --coverage --coverageDirectory=coverage --coverageProvider=babel --onlyChanged",
-    "test:ci": "jest --detectOpenHandles --changedSince=origin/master",
+    "test": "dotenvx run -- jest --detectOpenHandles --onlyChanged",
+    "test:coverage": "dotenvx run -- jest --coverage --coverageDirectory=coverage --coverageProvider=babel --onlyChanged",
+    "test:ci": "dotenvx run -- jest --detectOpenHandles --changedSince=origin/master",
     "build": "tsc",
-    "start": "node dist/server.js",
-    "dev": "nodemon",
+    "start": "dotenvx run -- node dist/server.js",
+    "dev": "dotenvx run -- nodemon",
     "lint": "eslint . --ext .js,.ts",
     "lint:fix": "eslint . --ext .js,.ts --fix"
   },
@@ -45,6 +45,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@dotenvx/dotenvx": "^1.51.0",
     "@types/bcrypt": "^5.0.2",
     "@types/handlebars": "^4.0.40",
     "@types/jsonwebtoken": "^9.0.10",
