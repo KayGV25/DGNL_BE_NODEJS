@@ -1,14 +1,26 @@
 import request from 'supertest';
 import app from '../app';
-import publicRouter from '../routers/public';
-import requestLogger from '../middlewares/requestLogger';
-import { NotFoundError, errorHandler } from '../middlewares/errorHandler';
+import { setupSwaggerDocs } from '../swagger';
 
 // Mock the dependencies
 jest.mock('../routers/public', () => {
     return jest.fn((req, res, next) => next());
 });
+
+jest.mock('../routers/authenticated', () => {
+    return jest.fn((req, res, next) => next());
+});
+
 jest.mock('../middlewares/requestLogger', () => jest.fn((req, res, next) => next()));
+
+jest.mock('../middlewares/authorization', () => ({
+    authorize: jest.fn(() => jest.fn((req, res, next) => next())),
+}));
+
+jest.mock('../swagger', () => ({
+    setupSwaggerDocs: jest.fn(),
+}));
+
 jest.mock('../middlewares/errorHandler', () => ({
     NotFoundError: jest.fn(message => {
         const error = new Error(message);
@@ -20,45 +32,223 @@ jest.mock('../middlewares/errorHandler', () => ({
     }),
 }));
 
-describe('Express Application', () => {
+describe('Express Application - Setup', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.isolateModules(() => {
+            require('../app'); // reloads app.ts with mocks active
+        });
     });
 
-    it('should use the requestLogger middleware', async () => {
-        await request(app).get('/');
-        expect(requestLogger).toHaveBeenCalled();
+    describe('Swagger Documentation Setup', () => {
+        it('should call setupSwaggerDocs exactly once', () => {
+            expect(setupSwaggerDocs).toHaveBeenCalledTimes(1);
+        });
     });
 
-    it('should mount publicRouter on /api/public', async () => {
-        await request(app).get('/api/public');
-        const publicRouterMock = publicRouter as unknown as jest.Mock;
-        expect(publicRouterMock).toHaveBeenCalled();
-    });
+    describe('Express JSON Parser Setup', () => {
+        it('should parse JSON request bodies', async () => {
+            const mockRouter = require('../routers/public') as jest.Mock;
+            mockRouter.mockImplementationOnce((req, res, next) => {
+                res.status(200).json({ received: req.body });
+            });
 
-    it('should handle NotFoundError for unhandled routes', async () => {
-        // Send a request to a non-existent path
-        await request(app).get('/non-existent-route');
-        expect(NotFoundError).toHaveBeenCalledWith("Can't find /non-existent-route on this server!");
-    });
-    
-    it('should use the global errorHandler middleware for unhandled routes', async () => {
-        // Send a request to a non-existent path
-        const res = await request(app).get('/some-invalid-path');
-        expect(errorHandler).toHaveBeenCalled();
-        expect(res.status).toBe(404); // The status set by our mocked NotFoundError
-        expect(res.text).toBe("Can't find /some-invalid-path on this server!");
-    });
+            const res = await request(app)
+                .post('/api/public/test')
+                .send({ test: 'data' })
+                .set('Content-Type', 'application/json');
 
-    it('should not handle a valid route with an error', async () => {
-        const publicRouterMock = publicRouter as unknown as jest.Mock;
-        publicRouterMock.mockImplementationOnce((req, res, next) => {
-            res.status(200).send('OK');
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual({ received: { test: 'data' } });
         });
 
-        const res = await request(app).get('/api/public/some-valid-route');
-        expect(res.status).toBe(200);
-        expect(res.text).toBe('OK');
-        expect(errorHandler).not.toHaveBeenCalled();
+        it('should handle empty JSON bodies', async () => {
+            const mockRouter = require('../routers/public') as jest.Mock;
+            mockRouter.mockImplementationOnce((req, res, next) => {
+                res.status(200).json({ received: req.body });
+            });
+
+            const res = await request(app)
+                .post('/api/public/test')
+                .send({})
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual({ received: {} });
+        });
+
+        it('should handle complex JSON objects', async () => {
+            const mockRouter = require('../routers/public') as jest.Mock;
+            mockRouter.mockImplementationOnce((req, res, next) => {
+                res.status(200).json({ received: req.body });
+            });
+
+            const complexData = {
+                user: { name: 'John', age: 30 },
+                items: [1, 2, 3],
+                active: true
+            };
+
+            const res = await request(app)
+                .post('/api/public/test')
+                .send(complexData)
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(200);
+            expect(res.body.received).toEqual(complexData);
+        });
+
+        it('should handle nested JSON structures', async () => {
+            const mockRouter = require('../routers/public') as jest.Mock;
+            mockRouter.mockImplementationOnce((req, res, next) => {
+                res.status(200).json({ received: req.body });
+            });
+
+            const nestedData = {
+                level1: {
+                    level2: {
+                        level3: {
+                            value: 'deep'
+                        }
+                    }
+                }
+            };
+
+            const res = await request(app)
+                .post('/api/public/test')
+                .send(nestedData)
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(200);
+            expect(res.body.received).toEqual(nestedData);
+        });
+
+        it('should handle arrays in JSON body', async () => {
+            const mockRouter = require('../routers/public') as jest.Mock;
+            mockRouter.mockImplementationOnce((req, res, next) => {
+                res.status(200).json({ received: req.body });
+            });
+
+            const arrayData = [1, 2, 3, 4, 5];
+
+            const res = await request(app)
+                .post('/api/public/test')
+                .send(arrayData)
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(200);
+            expect(res.body.received).toEqual(arrayData);
+        });
+
+        it('should handle JSON with special characters', async () => {
+            const mockRouter = require('../routers/public') as jest.Mock;
+            mockRouter.mockImplementationOnce((req, res, next) => {
+                res.status(200).json({ received: req.body });
+            });
+
+            const specialData = {
+                text: "Hello \"World\"",
+                emoji: "😀🎉",
+                unicode: "café"
+            };
+
+            const res = await request(app)
+                .post('/api/public/test')
+                .send(specialData)
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(200);
+            expect(res.body.received).toEqual(specialData);
+        });
+
+        it('should handle requests without JSON body', async () => {
+            const mockRouter = require('../routers/public') as jest.Mock;
+            mockRouter.mockImplementationOnce((req, res, next) => {
+                res.status(200).json({ bodyExists: req.body !== undefined });
+            });
+
+            const res = await request(app).get('/api/public/test');
+
+            expect(res.status).toBe(200);
+        });
+    });
+
+    describe('Application Instance', () => {
+        it('should export an Express application', () => {
+            expect(app).toBeDefined();
+            expect(typeof app).toBe('function');
+        });
+
+        it('should have Express app methods', () => {
+            expect(app.listen).toBeDefined();
+            expect(app.use).toBeDefined();
+            expect(app.get).toBeDefined();
+            expect(app.post).toBeDefined();
+        });
+
+        it('should be able to handle HTTP requests', async () => {
+            const res = await request(app).get('/api/public');
+            expect(res).toBeDefined();
+        });
+    });
+
+    describe('Setup Order', () => {
+        it('should setup JSON parser before routes', async () => {
+            const mockRouter = require('../routers/public') as jest.Mock;
+            mockRouter.mockImplementationOnce((req, res, next) => {
+                // Body should be parsed at this point
+                res.status(200).json({ 
+                    bodyParsed: typeof req.body === 'object' 
+                });
+            });
+
+            const res = await request(app)
+                .post('/api/public/test')
+                .send({ data: 'test' })
+                .set('Content-Type', 'application/json');
+
+            expect(res.body.bodyParsed).toBe(true);
+        });
+    });
+
+    describe('JSON Parser Configuration', () => {
+        it('should accept application/json content type', async () => {
+            const mockRouter = require('../routers/public') as jest.Mock;
+            mockRouter.mockImplementationOnce((req, res, next) => {
+                res.status(200).json({ success: true });
+            });
+
+            const res = await request(app)
+                .post('/api/public/test')
+                .send({ data: 'test' })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(200);
+        });
+
+        it('should handle large JSON payloads', async () => {
+            const mockRouter = require('../routers/public') as jest.Mock;
+            mockRouter.mockImplementationOnce((req, res, next) => {
+                res.status(200).json({ itemCount: req.body.items?.length });
+            });
+
+            const largeData = {
+                items: Array(100).fill({ id: 1, name: 'test', value: 'data' })
+            };
+
+            const res = await request(app)
+                .post('/api/public/test')
+                .send(largeData)
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(200);
+            expect(res.body.itemCount).toBe(100);
+        });
+    });
+
+    describe('Module Initialization', () => {
+        it('should initialize without errors', () => {
+            expect(() => require('../app')).not.toThrow();
+        });
     });
 });

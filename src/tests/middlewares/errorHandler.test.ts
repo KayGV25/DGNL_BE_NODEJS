@@ -11,7 +11,7 @@ import {
   ConflictError,
   AccountNotEnableError,
   errorHandler,
-} from "../../middlewares/errorHandler"; // adjust path if needed
+} from "../../middlewares/errorHandler";
 import { Request, Response, NextFunction } from "express";
 
 describe("Custom Error Classes", () => {
@@ -55,6 +55,7 @@ describe("errorHandler middleware", () => {
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
   let mockNext: NextFunction;
+  let consoleSpy: jest.SpyInstance;
 
   beforeEach(() => {
     mockReq = {
@@ -68,28 +69,39 @@ describe("errorHandler middleware", () => {
       json: jest.fn(),
     };
     mockNext = jest.fn();
-    jest.spyOn(console, "error").mockImplementation(() => {}); // silence console
+
+    consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
   });
 
   afterEach(() => {
-    (console.error as jest.Mock).mockRestore();
+    consoleSpy.mockRestore();
   });
 
   it("should handle a CustomAppError (operational)", () => {
     const err = new NotFoundError("Item not found");
     errorHandler(err, mockReq as Request, mockRes as Response, mockNext);
 
+    expect(mockRes.locals!.errorOccurred).toBe(true);
     expect(mockRes.status).toHaveBeenCalledWith(404);
     expect(mockRes.json).toHaveBeenCalledWith({
       status: "error",
       message: "Item not found",
     });
+
+    // check that log message contains details
+    const logMessage = consoleSpy.mock.calls[0][0];
+    expect(logMessage).toContain("GET");
+    expect(logMessage).toContain("/test");
+    expect(logMessage).toContain("127.0.0.1");
+    expect(logMessage).toContain("404");
+    expect(logMessage).toContain("NotFoundError");
   });
 
   it("should force 500 if CustomAppError is not operational", () => {
     const err = new CustomAppError("DB failure", 503, false);
     errorHandler(err, mockReq as Request, mockRes as Response, mockNext);
 
+    expect(mockRes.locals!.errorOccurred).toBe(true);
     expect(mockRes.status).toHaveBeenCalledWith(500);
     expect(mockRes.json).toHaveBeenCalledWith({
       status: "error",
@@ -101,6 +113,7 @@ describe("errorHandler middleware", () => {
     const err = new Error("Unexpected failure") as any;
     errorHandler(err, mockReq as Request, mockRes as Response, mockNext);
 
+    expect(mockRes.locals!.errorOccurred).toBe(true);
     expect(mockRes.status).toHaveBeenCalledWith(500);
     expect(mockRes.json).toHaveBeenCalledWith({
       status: "error",

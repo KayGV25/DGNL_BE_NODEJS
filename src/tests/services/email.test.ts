@@ -14,7 +14,7 @@ jest.mock("handlebars", () => ({
   compile: jest.fn(),
 }));
 
-describe("emailService", () => {
+describe("emailService send methods", () => {
   let sendMailMock: jest.Mock;
   let consoleErrorSpy: jest.SpyInstance;
   let consoleLogSpy: jest.SpyInstance;
@@ -22,34 +22,39 @@ describe("emailService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetVerificationMock();
-    
+
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-    
     sendMailMock = mockTransporter.sendMail;
+
     (fs.promises.readFile as jest.Mock).mockResolvedValue("template content");
+    process.env.EMAIL_USER = "test@sender.com";
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
-  
-  it("sendEmail calls transporter with correct options", async () => {
+
+  it("sendEmail calls transporter with correct options and adds currentYear", async () => {
     (handlebars.compile as jest.Mock).mockReturnValue((context: any) =>
-      `HTML with ${context.value || context.activation_link || context.otp}`
+      `HTML with ${context.value} ${context.currentYear}`
     );
-    
+
     await emailService.sendEmail("test@a.com", "Subject", "TemplateName", { value: "val" });
 
     expect(fs.promises.readFile).toHaveBeenCalled();
     expect(handlebars.compile).toHaveBeenCalledWith("template content");
     expect(sendMailMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        from: "test@sender.com",
         to: "test@a.com",
         subject: "Subject",
-        html: "HTML with val",
+        html: expect.stringContaining("val"),
       })
     );
+    expect(sendMailMock).toHaveBeenCalledWith(expect.objectContaining({
+      html: expect.stringContaining(new Date().getFullYear().toString())
+    }));
   });
 
   it("sendActivateAccountEmail builds link and calls sendEmail", async () => {
@@ -80,12 +85,22 @@ describe("emailService", () => {
     );
   });
 
+  it("sendEmail logs messageId on success", async () => {
+    (handlebars.compile as jest.Mock).mockReturnValue(() => "<html/>");
+    sendMailMock.mockResolvedValueOnce({ messageId: "abc123" });
+
+    await emailService.sendEmail("a@b.com", "Subject", "TemplateName", {});
+
+    expect(consoleLogSpy).toHaveBeenCalledWith("Email sent: %s", "abc123");
+  });
+
   it("sendEmail throws error if transporter fails", async () => {
-    (handlebars.compile as jest.Mock).mockReturnValue((context: any) => 'some html');
+    (handlebars.compile as jest.Mock).mockReturnValue(() => "<html/>");
     sendMailMock.mockRejectedValueOnce(new Error("SMTP error"));
 
     await expect(
       emailService.sendEmail("a@b.com", "Subject", "TemplateName", {})
     ).rejects.toThrow("Failed to send email.");
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Error sending email:", expect.any(Error));
   });
 });
