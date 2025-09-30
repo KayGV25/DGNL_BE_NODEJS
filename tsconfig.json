@@ -13,7 +13,8 @@
     "allowSyntheticDefaultImports": true,
     "types": [
       "node",
-      "jest"
+      "jest",
+      "express"
     ]
   },
   "include": ["src/**/*.ts", "src/tests/jest.setup.ts"],
