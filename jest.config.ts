@@ -1,6 +1,8 @@
 /** @type {import('jest').Config} */
 module.exports = {
+  preset: 'ts-jest',
   roots: ["<rootDir>/src"],
+  testEnvironment: 'node',
 
   testMatch: [
     "**/__tests__/**/*.+(ts|js)",
@@ -39,5 +41,22 @@ module.exports = {
 
   coverageDirectory: "coverage",
 
-  coverageReporters: ["text", "lcov", "html"],
+  coverageReporters:[
+    'text',           // Shows coverage in console
+    'text-summary',   // Shows summary in console
+    'html',           // Generates HTML report
+    'lcov',           // For PR comments and Codecov
+    'json-summary',   // For programmatic access
+    'json',           // Full coverage data
+    'cobertura',      // For some CI tools
+  ],
+
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70,
+    },
+  }
 };
