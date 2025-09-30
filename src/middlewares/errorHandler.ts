@@ -82,7 +82,7 @@ export const errorHandler = (
     res: Response,
     next: NextFunction
 ) => {
-    console.error(err);
+    res.locals.errorOccurred = true; 
 
     // Determine the status code
     let statusCode = err.statusCode || 500;
@@ -92,7 +92,9 @@ export const errorHandler = (
         statusCode = 500;
         message = 'Something went wrong!';
     }
-
+    console.log(
+        `[${new Date().toISOString()}]\t${req.method.toUpperCase()}\t${req.originalUrl}\t${req.ip}\t${statusCode}\t${err.name}\t${err.message}`
+    );
     res.status(statusCode).json({
         status: 'error', 
         message: message,

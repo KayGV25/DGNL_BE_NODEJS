@@ -57,8 +57,13 @@ describe("errorHandler middleware", () => {
   let mockNext: NextFunction;
 
   beforeEach(() => {
-    mockReq = {};
+    mockReq = {
+      method: "GET",
+      originalUrl: "/test",
+      ip: "127.0.0.1",
+    };
     mockRes = {
+      locals: {},
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
     };
