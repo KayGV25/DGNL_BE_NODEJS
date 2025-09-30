@@ -1,4 +1,4 @@
-import { userRepository } from "../../repositories/user"; // adjust path
+import { userRepository } from "../../repositories/user";
 import pool from "../../database/sql";
 import { RegisterRequest, UserCredentials, UserInfo } from "../../interfaces/user";
 import { RoleType } from "../../models/identity";
@@ -15,9 +15,16 @@ jest.mock("../../database/sql", () => ({
 }));
 
 describe("userRepository", () => {
+  let consoleSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
     (pool.connect as jest.Mock).mockResolvedValue(mockClient);
+    consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
   });
 
   describe("getUserById", () => {
@@ -39,11 +46,12 @@ describe("userRepository", () => {
         email: "test@mail.com",
         dob: new Date("2000-01-01"),
         avatar_url: "url",
-        is_enable: true
+        is_enable: true,
       };
       mockClient.query.mockResolvedValueOnce({ rows: [fakeUser] });
       const result = await userRepository.getUserById("123");
       expect(result).toEqual(fakeUser);
+      expect(mockClient.release).toHaveBeenCalled();
     });
   });
 
@@ -52,6 +60,7 @@ describe("userRepository", () => {
       mockClient.query.mockResolvedValueOnce({ rows: [] });
       const result = await userRepository.getUserCredentialsByUsernameOrEmail("user");
       expect(result).toBeNull();
+      expect(mockClient.release).toHaveBeenCalled();
     });
 
     it("should return user credentials if found", async () => {
@@ -66,6 +75,7 @@ describe("userRepository", () => {
       mockClient.query.mockResolvedValueOnce({ rows: [fakeCreds] });
       const result = await userRepository.getUserCredentialsByUsernameOrEmail("user");
       expect(result).toEqual(fakeCreds);
+      expect(mockClient.release).toHaveBeenCalled();
     });
   });
 
@@ -80,10 +90,11 @@ describe("userRepository", () => {
       };
       const result = await userRepository.createUser(request);
       expect(result).toBe("new-id");
-      expect(mockClient.query).toHaveBeenCalled();
+      expect(mockClient.query).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO identity.users"), expect.any(Array));
+      expect(mockClient.release).toHaveBeenCalled();
     });
 
-    it("should throw error when insert fails", async () => {
+    it("should log and throw error when insert fails", async () => {
       const error = new Error("DB error");
       mockClient.query.mockRejectedValueOnce(error);
       const request: RegisterRequest = {
@@ -93,6 +104,8 @@ describe("userRepository", () => {
         role: 1,
       };
       await expect(userRepository.createUser(request)).rejects.toThrow("DB error");
+      expect(consoleSpy).toHaveBeenCalledWith("❌ Error inserting user:", error);
+      expect(mockClient.release).toHaveBeenCalled();
     });
   });
 
@@ -101,12 +114,14 @@ describe("userRepository", () => {
       mockClient.query.mockResolvedValueOnce({ rows: [{ count: 1 }] });
       const result = await userRepository.checkIfEmailExists("mail@mail.com");
       expect(result).toBe(true);
+      expect(mockClient.release).toHaveBeenCalled();
     });
 
     it("should return false if count = 0", async () => {
       mockClient.query.mockResolvedValueOnce({ rows: [{ count: 0 }] });
       const result = await userRepository.checkIfEmailExists("mail@mail.com");
       expect(result).toBe(false);
+      expect(mockClient.release).toHaveBeenCalled();
     });
   });
 
@@ -124,6 +139,7 @@ describe("userRepository", () => {
       expect(mockClient.query).toHaveBeenNthCalledWith(2, expect.stringContaining("UPDATE"), ["123"]);
       expect(mockClient.query).toHaveBeenNthCalledWith(3, expect.stringContaining("INSERT INTO identity.tokens"), ["123", "jwt-token"]);
       expect(mockClient.query).toHaveBeenNthCalledWith(4, "COMMIT");
+      expect(mockClient.release).toHaveBeenCalled();
     });
 
     it("should rollback on error", async () => {
@@ -133,6 +149,7 @@ describe("userRepository", () => {
 
       await expect(userRepository.enableAccountAndSetJWTToken("123", "jwt-token")).rejects.toThrow("Update failed");
       expect(mockClient.query).toHaveBeenCalledWith("ROLLBACK");
+      expect(mockClient.release).toHaveBeenCalled();
     });
   });
 
@@ -141,12 +158,14 @@ describe("userRepository", () => {
       mockClient.query.mockResolvedValueOnce({ rows: [] });
       const result = await userRepository.getUserRole("123");
       expect(result).toBeNull();
+      expect(mockClient.release).toHaveBeenCalled();
     });
 
     it("should return role if found", async () => {
       mockClient.query.mockResolvedValueOnce({ rows: [{ role_id: 2 }] });
       const result = await userRepository.getUserRole("123");
       expect(result).toBe(2 as RoleType);
+      expect(mockClient.release).toHaveBeenCalled();
     });
   });
 });

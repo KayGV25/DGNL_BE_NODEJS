@@ -116,3 +116,17 @@ export const resendAccountActivation = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: 'Account activation email sent'})
 }
+
+export const logout = async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.userId || "";
+    try {
+        authenticationService.logout(userId)
+        res.status(200).json({ message: 'Logout Successfully'})
+    } catch (error) {
+        if (error instanceof CustomAppError) {
+            next(error)
+        } else {
+            console.log(error)
+        }
+    }
+}

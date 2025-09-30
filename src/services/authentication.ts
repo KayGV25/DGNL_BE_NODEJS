@@ -2,7 +2,7 @@ import { redisService } from "../database/redis";
 import { JWTTokenResponse } from "../interfaces/jwt";
 import { ValidateResponse } from "../interfaces/security";
 import { LoginRequest, RegisterRequest, UserCredentials } from "../interfaces/user";
-import { AccountNotEnableError, ConflictError, NotFoundError, TokenExpiredError, UnauthorizedError } from "../middlewares/errorHandler";
+import { AccountNotEnableError, ConflictError, CustomAppError, NotFoundError, TokenExpiredError, UnauthorizedError } from "../middlewares/errorHandler";
 import { RoleType } from "../models/identity";
 import { tokenRepository } from "../repositories/token";
 import { userRepository } from "../repositories/user";
@@ -65,8 +65,9 @@ export const authenticationService = {
     async validateEmail(activationToken: string, email: string, userId: string): Promise<ValidateResponse | null> {
         if (await securityService.checkEmailActivationCode(email, activationToken)) {
             const userRole = await userRepository.getUserRole(userId) ?? RoleType.USER
-            const jwtToken = securityService.generateJWTToken(email, userRole)
+            const jwtToken = securityService.generateJWTToken(userId, userRole)
             await userRepository.enableAccountAndSetJWTToken(userId, jwtToken)
+            await redisService.deleteEmailActivationToken(email)
             return { jwt_token: jwtToken }
         }
 
@@ -78,6 +79,7 @@ export const authenticationService = {
             const userRole = await userRepository.getUserRole(userId) ?? RoleType.USER
             const jwtToken = securityService.generateJWTToken(userId, userRole)
             await tokenRepository.upsertTokenForUser(userId, jwtToken)
+            await redisService.deleteOTP(email)
             return { jwt_token: jwtToken }
         }
 
@@ -85,16 +87,27 @@ export const authenticationService = {
     },
 
     async resendOtp(email: string): Promise<void> {
+        await redisService.deleteOTP(email)
         const otp = securityService.generateOTP()
         redisService.saveOTP(otp, email)
         emailService.sendOTPEmail(email, otp)
     },
 
     async resendAccountActivation(userId: string, email: string): Promise<void> {
+        await redisService.deleteEmailActivationToken(email)
         const activationToken = securityService.generateEmailActivationToken()
         redisService.saveEmailActivationToken(activationToken, email)
 
         emailService.sendActivateAccountEmail(email, activationToken, userId)
         throw new AccountNotEnableError("Account not enabled please check email")
+    },
+
+    async logout(userId: string): Promise<void> {
+        if (userId) {
+            console.log(userId)
+            await tokenRepository.deleteTokensByUserId(userId)
+            return
+        }
+        throw new CustomAppError("Unable to logout", 418)
     }
 }

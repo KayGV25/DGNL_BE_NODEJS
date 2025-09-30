@@ -49,6 +49,7 @@ module.exports = {
     'json-summary',   // For programmatic access
     'json',           // Full coverage data
     'cobertura',      // For some CI tools
+    'xml'
   ],
 
   coverageThreshold: {
@@ -58,5 +59,10 @@ module.exports = {
       lines: 70,
       statements: 70,
     },
-  }
+  },
+
+  reporters: [
+    'default',
+    ['jest-junit', { outputDirectory: 'reports', outputName: 'jest-junit.xml' }]
+  ]
 };

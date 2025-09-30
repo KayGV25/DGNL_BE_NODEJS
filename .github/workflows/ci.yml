@@ -88,7 +88,10 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pnpm jest --coverage --detectOpenHandles --changedSince=origin/${{ github.base_ref }} || pnpm jest --coverage --detectOpenHandles
+          pnpm jest --coverage --detectOpenHandles --changedSince=origin/${{ github.base_ref }} \
+          --ci --reporters=default --reporters=jest-junit \
+          || pnpm jest --coverage --detectOpenHandles \
+          --ci --reporters=default --reporters=jest-junit
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -98,6 +101,12 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
+          verbose: true
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Generate coverage summary for GitHub
         if: always()
@@ -122,12 +131,13 @@ jobs:
             echo "📄 Full report available in artifacts below" >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Comment PR with coverage
-        uses: romeovs/lcov-reporter-action@v0.3.1
-        with:
-          lcov-file: ./coverage/lcov.info
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          delete-old-comments: true
+      - name: Set PR metadata
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "CC_PR=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+          echo "CC_BRANCH=${{ github.head_ref }}" >> $GITHUB_ENV
+          echo "PR Number: ${{ github.event.pull_request.number }}"
+          echo "Branch: ${{ github.head_ref }}"
 
       - name: Upload coverage artifact
         if: always()

@@ -343,10 +343,8 @@ const options = {
 
 const swaggerSpec = swaggerJSDoc(options)
 
-const isDev = serverConfig.nodeEnv === "development"
-
-export const setupSwaggerDocs = (app: Express) => {
-    if (isDev) {
+export const setupSwaggerDocs = (app: Express, nodeEnv = serverConfig.nodeEnv) => {
+    if (nodeEnv === "development") {
         // Swagger UI configuration
         const swaggerUiOptions = {
             explorer: true,

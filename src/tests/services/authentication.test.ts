@@ -4,7 +4,7 @@ import { tokenRepository } from "../../repositories/token";
 import { securityService } from "../../services/security";
 import { redisService } from "../../database/redis";
 import { emailService } from "../../services/email";
-import { AccountNotEnableError, ConflictError, NotFoundError, TokenExpiredError, UnauthorizedError } from "../../middlewares/errorHandler";
+import { AccountNotEnableError, ConflictError, NotFoundError, TokenExpiredError, UnauthorizedError, CustomAppError } from "../../middlewares/errorHandler";
 import { RoleType } from "../../models/identity";
 
 jest.mock("../../repositories/user");
@@ -161,6 +161,21 @@ describe("authenticationService", () => {
 
       expect(redisService.saveEmailActivationToken).toHaveBeenCalledWith("token", "a@b.com");
       expect(emailService.sendActivateAccountEmail).toHaveBeenCalledWith("a@b.com", "token", "123");
+    });
+  });
+
+  describe("logout", () => {
+    it("should delete tokens for a valid userId", async () => {
+      (tokenRepository.deleteTokensByUserId as jest.Mock).mockResolvedValue(undefined);
+
+      await authenticationService.logout("123");
+
+      expect(tokenRepository.deleteTokensByUserId).toHaveBeenCalledWith("123");
+    });
+
+    it("should throw CustomAppError if userId is missing", async () => {
+      await expect(authenticationService.logout("")).rejects.toThrow(CustomAppError);
+      expect(tokenRepository.deleteTokensByUserId).not.toHaveBeenCalled();
     });
   });
 });

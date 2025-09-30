@@ -6,6 +6,7 @@ import {
   validateOtp,
   resendOtp,
   resendAccountActivation,
+  logout,
 } from "../../controllers/authentication";
 import { authenticationService } from "../../services/authentication";
 import { AccountNotEnableError, ConflictError, CustomAppError, TokenExpiredError } from "../../middlewares/errorHandler";
@@ -253,6 +254,43 @@ describe("Authentication Controller", () => {
       expect(mockRes.json).toHaveBeenCalledWith({
         message: "Account activation email sent",
       });
+    });
+  });
+
+  describe("logout", () => {
+    it("200 on success", async () => {
+      (authenticationService.logout as jest.Mock).mockResolvedValue(undefined);
+
+      mockReq.user = { userId: "123", roleId: RoleType.USER, token: "mockToken" };
+      await logout(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+
+      expect(authenticationService.logout).toHaveBeenCalledWith("123");
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(mockRes.json).toHaveBeenCalledWith({ message: "Logout Successfully" });
+    });
+
+    it("handles CustomAppError via next()", async () => {
+      (authenticationService.logout as jest.Mock).mockImplementation(() => {
+        throw new CustomAppError("Logout failed", 500);
+      });
+
+      mockReq.user = { userId: "123", roleId: RoleType.USER, token: "mockToken" };
+      await logout(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(CustomAppError));
+    });
+
+    it("logs non-CustomAppError errors to console", async () => {
+      const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+      (authenticationService.logout as jest.Mock).mockImplementation(() => {
+        throw new Error("Unexpected");
+      });
+
+      mockReq.user = { userId: "123", roleId: RoleType.USER, token: "mockToken" };
+      await logout(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+
+      expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+      consoleSpy.mockRestore();
     });
   });
 });
