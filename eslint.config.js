@@ -27,6 +27,7 @@ export default [
       globals: {
         ...globals.node,
         ...globals.es6,
+        NodeJS: "readonly",
       },
       parser: tsParser,
       parserOptions: {
