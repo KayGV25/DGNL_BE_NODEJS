@@ -9,4 +9,6 @@ const serverConfig: ServerConfig = {
   url: process.env.URL || 'http://localhost:80'
 };
 
+export const isDev = serverConfig.nodeEnv === 'development'
+
 export default serverConfig;

@@ -28,6 +28,19 @@ describe("Swagger Setup", () => {
     (serverConfig as any).nodeEnv = originalEnv;
   });
 
+  it("should mount /api-docs and /api-docs.json in default mode", async () => {
+    setupSwaggerDocs(app);
+
+    const resJson = await request(app).get("/api-docs.json");
+    expect(resJson.status).toBe(200);
+    expect(resJson.body.openapi).toBe("3.0.0"); // swaggerSpec content
+
+    const resUi = await request(app).get("/api-docs").redirects(1);
+    // swagger-ui-express serves HTML, so check content type
+    expect(resUi.status).toBe(200);
+    expect(resUi.headers["content-type"]).toContain("text/html");
+  });
+
   it("should mount /api-docs and /api-docs.json in development mode", async () => {
     setupSwaggerDocs(app, "development");
 
