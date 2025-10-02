@@ -1,0 +1,67 @@
+on:
+  schedule:
+    - cron: '0 20 * * 1'
+
+jobs:
+  create_pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Generate branch name
+        id: vars
+        run: echo "branch=auto/merge-master-into-staging-$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Check if master has new commits
+        id: check_diff
+        run: |
+          git fetch origin master
+          if git merge-base --is-ancestor origin/master HEAD; then
+            echo "No new commits in master. Skipping PR."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Stop if no changes
+        if: steps.check_diff.outputs.skip == 'true'
+        run: exit 0
+
+      - name: Merge master into staging (create PR branch)
+        run: |
+          # Create a unique branch from staging
+          git checkout -b ${{ steps.vars.outputs.branch }}
+
+          # Merge master into it
+          if ! git merge --no-ff origin/master; then
+            echo "::warning::Merge conflicts detected. Please resolve in the PR."
+          fi
+
+      - name: Push PR branch
+        run: |
+          git push origin ${{ steps.vars.outputs.branch }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ steps.vars.outputs.branch }}
+          base: staging
+          title: "Scheduled weekly merge: master → staging (${{ steps.vars.outputs.branch }})"
+          body: |
+            This is an automated PR that merges the latest `master` into `staging`.
+
+            ⚠️ If there are conflicts, they must be resolved in this PR before merging.
