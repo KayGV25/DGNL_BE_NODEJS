@@ -3,7 +3,7 @@ import { emailConfig } from "../configs/emailConfig";
 import handlebars from 'handlebars';
 import fs from 'fs';
 import path from 'path';
-import { EmailContext } from "../interfaces/email";
+import { EmailContext, EmailError } from "../interfaces/email";
 import serverConfig from "../configs/serverConfig";
 
 class EmailService {
@@ -18,17 +18,20 @@ class EmailService {
                 user: emailConfig.email,
                 pass: emailConfig.password,
             },
+            pool: true,
+            maxConnections: 5,
+            maxMessages: 100,
         });
+    }
 
-        this.transporter.verify((error, success) => {
-            if (error) {
-                console.error("Nodemailer configuration error:", error);
-            }
-
-            if (success) {
-                console.log("Nodemailer ready to send emails.");
-            }
-        });
+    public async init(): Promise<void> {
+        try {
+            await this.transporter.verify();
+            console.log("Nodemailer ready to send emails.");
+        } catch (err) {
+            console.error("Nodemailer configuration error:", err);
+            throw err;
+        }
     }
 
     private async compileTemplate(templateName: string): Promise<handlebars.TemplateDelegate> {
@@ -38,31 +41,35 @@ class EmailService {
     }
 
     public async sendEmail(email: string, subject: string, templateName: string, context: EmailContext): Promise<void> {
+        const template = await this.compileTemplate(templateName);
+
+        // Add common context variables (e.g., current year)
+        const finalContext = {
+            ...context,
+            currentYear: new Date().getFullYear(),
+        };
+
+        const htmlContent = template(finalContext);
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER, // Sender address
+            to: email,                     // Recipient address
+            subject: subject,           // Subject line
+            html: htmlContent,          // HTML body
+            // text: "Plain text version of the email (good for fallback)", // Optional: plain text version
+        };
+
         try {
-            const template = await this.compileTemplate(templateName);
-
-            // Add common context variables (e.g., current year)
-            const finalContext = {
-                ...context,
-                currentYear: new Date().getFullYear(),
-            };
-
-            const htmlContent = template(finalContext);
-
-            const mailOptions = {
-                from: process.env.EMAIL_USER, // Sender address
-                to: email,                     // Recipient address
-                subject: subject,           // Subject line
-                html: htmlContent,          // HTML body
-                // text: "Plain text version of the email (good for fallback)", // Optional: plain text version
-            };
-
             const info = await this.transporter.sendMail(mailOptions);
             console.log('Email sent: %s', info.messageId);
-            // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info)); // Only for ethereal.email testing
-        } catch (error) {
-            console.error('Error sending email:', error);
-            throw new Error('Failed to send email.'); // Re-throw to handle in calling function
+        } catch (error: unknown) {
+            const err = error as EmailError;
+            if (err.code === "ECONNECTION" || err.code === "ETIMEDOUT") {
+                console.warn("Retrying Nodemailer send after verify...");
+                await this.transporter.verify();
+                return await this.transporter.sendMail(mailOptions);
+            }
+            throw err;
         }
     }
 
