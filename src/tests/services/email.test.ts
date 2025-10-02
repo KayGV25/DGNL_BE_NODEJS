@@ -94,13 +94,40 @@ describe("emailService send methods", () => {
     expect(consoleLogSpy).toHaveBeenCalledWith("Email sent: %s", "abc123");
   });
 
-  it("sendEmail throws error if transporter fails", async () => {
+  it("sendEmail retries once on ECONNECTION", async () => {
+    (handlebars.compile as jest.Mock).mockReturnValue(() => "<html/>");
+    const error = new Error("Connection lost") as any;
+    error.code = "ECONNECTION";
+
+    sendMailMock.mockRejectedValueOnce(error);
+    sendMailMock.mockResolvedValueOnce({ messageId: "retry123" });
+
+    await emailService.sendEmail("a@b.com", "Subject", "TemplateName", {});
+
+    expect(sendMailMock).toHaveBeenCalledTimes(2);
+    expect(consoleLogSpy).not.toHaveBeenCalledWith("Email sent: %s", "retry123"); // log skipped after retry
+  });
+
+  it("sendEmail retries once on ETIMEDOUT", async () => {
+    (handlebars.compile as jest.Mock).mockReturnValue(() => "<html/>");
+    const error = new Error("Timeout") as any;
+    error.code = "ETIMEDOUT";
+
+    sendMailMock.mockRejectedValueOnce(error);
+    sendMailMock.mockResolvedValueOnce({ messageId: "retryTimeout" });
+
+    await emailService.sendEmail("a@b.com", "Subject", "TemplateName", {});
+
+    expect(sendMailMock).toHaveBeenCalledTimes(2);
+    expect(consoleLogSpy).not.toHaveBeenCalledWith("Email sent: %s", "retryTimeout");
+  });
+
+  it("sendEmail throws error if transporter fails with unknown error", async () => {
     (handlebars.compile as jest.Mock).mockReturnValue(() => "<html/>");
     sendMailMock.mockRejectedValueOnce(new Error("SMTP error"));
 
     await expect(
       emailService.sendEmail("a@b.com", "Subject", "TemplateName", {})
-    ).rejects.toThrow("Failed to send email.");
-    expect(consoleErrorSpy).toHaveBeenCalledWith("Error sending email:", expect.any(Error));
+    ).rejects.toThrow("SMTP error");
   });
 });

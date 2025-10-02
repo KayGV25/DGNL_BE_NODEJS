@@ -4,13 +4,19 @@ let verifyError: Error | null = null;
 
 const mockTransporter = {
   sendMail: jest.fn().mockResolvedValue({ messageId: "123" }),
-  verify: jest.fn().mockImplementation((callback) => {
+  verify: jest.fn().mockImplementation((callback?: (err: Error | null, success: boolean) => void) => {
     if (callback) {
+      // Callback style
       if (shouldVerifySucceed) {
         callback(null, true);
       } else {
         callback(verifyError || new Error("Verification failed"), false);
       }
+    } else {
+      // Promise style
+      return shouldVerifySucceed
+        ? Promise.resolve(true)
+        : Promise.reject(verifyError || new Error("Verification failed"));
     }
   }),
 };
@@ -30,6 +36,7 @@ const resetVerificationMock = () => {
   shouldVerifySucceed = true;
   verifyError = null;
   mockTransporter.verify.mockClear();
+  mockTransporter.sendMail.mockClear();
 };
 
 export { mockTransporter, setVerificationSuccess, resetVerificationMock };
