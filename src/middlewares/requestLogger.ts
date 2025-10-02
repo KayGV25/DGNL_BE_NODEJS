@@ -7,13 +7,14 @@ declare module "express" {
 }
 
 const requestLogger = (req: Request, res: Response, next: NextFunction) => {
-
     req.cpuStartUsage = process.cpuUsage();
-
     res.locals.errorOccurred = false;
     
     const originalEnd = res.end;
-    res.end = ((...args: Parameters<typeof originalEnd>): ReturnType<typeof originalEnd> => {
+
+    res.end = function (this: Response, ...args: Parameters<typeof originalEnd>): ReturnType<typeof originalEnd> {
+        const result = originalEnd.apply(this, args);
+        
         if (req.cpuStartUsage && !res.locals.errorOccurred) {
             const cpuDiff = process.cpuUsage(req.cpuStartUsage);
             const totalCpuMicroseconds = cpuDiff.user + cpuDiff.system;
@@ -24,8 +25,8 @@ const requestLogger = (req: Request, res: Response, next: NextFunction) => {
             );
         }
 
-        return originalEnd(...args);
-    }) as typeof res.end;
+        return result;
+    } as typeof res.end;
 
     next();
 };
