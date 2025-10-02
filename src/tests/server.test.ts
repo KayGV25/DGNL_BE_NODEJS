@@ -3,18 +3,16 @@ import app from '../app';
 import config from '../configs/serverConfig';
 import { connectToRedis } from '../database/redis';
 
-jest.mock('../app', () => {
-  const expressApp = jest.requireActual('../app');
-  
-  const mockApp = {
-    ...expressApp,
+jest.mock('../app', () => ({
+  __esModule: true,
+  default: {
     listen: jest.fn((port, callback) => {
-      callback();
+      callback(); // simulate server starting
       return { close: jest.fn() };
     }),
-  };
-  return mockApp;
-});
+  },
+}));
+
 
 // Mock the Redis module
 jest.mock('../database/redis', () => ({
@@ -23,8 +21,12 @@ jest.mock('../database/redis', () => ({
 
 // Mock the config module
 jest.mock('../configs/serverConfig', () => ({
-  port: 3000,
-  nodeEnv: 'development',
+  __esModule: true,
+  default: {
+    port: 3000,
+    nodeEnv: 'development',
+  },
+  isDev: true,
 }));
 
 
@@ -47,15 +49,19 @@ describe('Server Startup', () => {
     
     expect(app.listen).toHaveBeenCalledTimes(1);
     expect(app.listen).toHaveBeenCalledWith(config.port, expect.any(Function));
-    expect(consoleSpy).toHaveBeenCalledWith(expectedMessage);
+    expect(consoleSpy.mock.calls.flat()).toContain(expectedMessage);
     expect(connectToRedis).toHaveBeenCalledTimes(1);
   });
 
   it('should log the correct production message when NODE_ENV is production', async () => {
     jest.resetModules();
     jest.doMock('../configs/serverConfig', () => ({
-      port: 80,
-      nodeEnv: 'production',
+      __esModule: true,
+      default: {
+        port: 80,
+        nodeEnv: 'production',
+      },
+      isDev: false,
     }));
     
     // Dynamic imports to get fresh references to the mocked modules
@@ -68,7 +74,7 @@ describe('Server Startup', () => {
 
     expect(updatedApp.listen).toHaveBeenCalledTimes(1);
     expect(updatedApp.listen).toHaveBeenCalledWith(updatedConfig.port, expect.any(Function));
-    expect(consoleSpy).toHaveBeenCalledWith(expectedMessage);
+    expect(consoleSpy.mock.calls.flat()).toContain(expectedMessage);
     expect(updatedConnectToRedis).toHaveBeenCalledTimes(1);
   });
 });

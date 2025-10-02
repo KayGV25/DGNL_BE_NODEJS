@@ -1,8 +1,6 @@
 import app from './app';
-import config from './configs/serverConfig';
+import config, { isDev } from './configs/serverConfig';
 import { connectToRedis } from './database/redis';
-
-const isDev = config.nodeEnv === 'development';
 
 app.listen(config.port, async () => {
     const message = isDev
